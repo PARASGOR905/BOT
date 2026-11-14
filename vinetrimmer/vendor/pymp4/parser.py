@@ -20,16 +20,63 @@ from uuid import UUID
 from construct import *
 from construct.lib import *
 
-# Compatibility shim: construct >= 2.9 removed PaddedString; replace with Bytes(n) which
-# reads/writes exactly n bytes, matching the old fixed-width string behaviour.
+# ── construct >= 2.9 compatibility shims ──────────────────────────────────────
+
+# 1. PaddedString was removed; replace with Bytes(n) (reads/writes n raw bytes).
 try:
-    PaddedString  # noqa: F821 – already in namespace from star-import (construct < 2.9)
+    PaddedString  # noqa: F821 – present in construct < 2.9 star-import
 except NameError:
     from construct import Bytes as _compat_Bytes
 
     def PaddedString(length, encoding):  # noqa: N802
-        """Drop-in for construct's removed PaddedString: reads `length` raw bytes."""
         return _compat_Bytes(length)
+
+# 2. Universal Const shim: construct 2.8.8 expects Const(subcon, value) while
+#    construct >= 2.9 expects Const(value, subcon). Detect which one is installed
+#    and route correctly so both (value, subcon) and (subcon, value) work everywhere.
+try:
+    from construct import Construct as _Construct, Byte as _TestByte
+    _orig_Const = Const  # noqa: F821 – from star-import
+
+    try:
+        _orig_Const(0, _TestByte)
+        _const_expects_val_first = True
+    except TypeError:
+        _const_expects_val_first = False
+
+    def Const(a, b=None, **kw):  # noqa: N802
+        if b is None:
+            return _orig_Const(a, **kw)
+        if isinstance(a, _Construct):
+            subcon, val = a, b
+        else:
+            val, subcon = a, b
+        if _const_expects_val_first:
+            return _orig_Const(val, subcon, **kw)
+        else:
+            return _orig_Const(subcon, val, **kw)
+except Exception:
+    pass
+
+# 3. GreedyString was removed; map to GreedyBytes decoded on the fly.
+try:
+    GreedyString  # noqa: F821
+except NameError:
+    from construct import GreedyBytes as _GB, Adapter as _Adapter
+
+    class _GreedyStringAdapter(_Adapter):
+        def __init__(self, encoding):
+            super().__init__(_GB)
+            self.encoding = encoding
+        def _decode(self, obj, ctx, path):
+            return obj.decode(self.encoding, errors="replace")
+        def _encode(self, obj, ctx, path):
+            return obj.encode(self.encoding)
+
+    def GreedyString(encoding):  # noqa: N802
+        return _GreedyStringAdapter(encoding)
+
+# ──────────────────────────────────────────────────────────────────────────────
 
 from vinetrimmer.vendor.pymp4.adapters import ISO6392TLanguageCode, MaskedInteger, UUIDBytes
 from vinetrimmer.vendor.pymp4.subconstructs import TellPlusSizeOf
