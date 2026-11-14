@@ -60,7 +60,31 @@ UPLOAD_ENGINE = "rclone"
 
 # Rclone remote target
 RCLONE_REMOTE = "gdrive:TV Shows"
-RCLONE_BIN = "rclone"
+
+def find_rclone_bin():
+    found = shutil.which("rclone")
+    if found:
+        return "rclone"
+    local_app_data = os.environ.get("LOCALAPPDATA", "")
+    if local_app_data:
+        winget_link = Path(local_app_data) / "Microsoft" / "WinGet" / "Links" / "rclone.exe"
+        if winget_link.exists():
+            return f'"{winget_link}"'
+        winget_pkgs = Path(local_app_data) / "Microsoft" / "WinGet" / "Packages"
+        if winget_pkgs.exists():
+            matches = list(winget_pkgs.glob("**/rclone.exe"))
+            if matches:
+                return f'"{matches[0]}"'
+    candidates = [
+        Path(r"C:\rclone\rclone.exe"),
+        Path(r"C:\Program Files\rclone\rclone.exe"),
+    ]
+    for c in candidates:
+        if c.exists():
+            return f'"{c}"'
+    return "rclone"
+
+RCLONE_BIN = find_rclone_bin()
 
 # Robocopy local Google Drive destination
 GDRIVE_DEFAULT_DEST = r"G:\My Drive\TV Shows"
