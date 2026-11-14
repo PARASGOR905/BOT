@@ -58,7 +58,7 @@ try:
 except Exception:
     pass
 
-# 3. GreedyString was removed; map to GreedyBytes decoded on the fly.
+# 3. GreedyString was removed in construct >= 2.9; map to GreedyBytes decoded on the fly.
 try:
     GreedyString  # noqa: F821
 except NameError:
@@ -75,6 +75,51 @@ except NameError:
 
     def GreedyString(encoding):  # noqa: N802
         return _GreedyStringAdapter(encoding)
+
+# 4. Prefixed `includelength` argument was only introduced in construct >= 2.9.
+#    In construct 2.8.8, shim it so includelength=True subtracts lengthfield size during parse.
+try:
+    _orig_Prefixed = Prefixed  # noqa: F821 – from star-import
+    try:
+        from construct import Byte as _PB, Int8ub as _PI
+        _orig_Prefixed(_PI, _PB, includelength=True)
+    except TypeError:
+        from construct.core import BoundBytesIO as _BoundBytesIO, SizeofError as _SizeofError, _write_stream as _c_write_stream
+
+        class Prefixed(_orig_Prefixed):  # noqa: F811
+            def __init__(self, lengthfield, subcon, includelength=False):
+                super().__init__(lengthfield, subcon)
+                self.includelength = includelength
+
+            def _parse(self, stream, context, path):
+                length = self.lengthfield._parse(stream, context, path)
+                if self.includelength:
+                    length -= self.lengthfield._sizeof(context, path)
+                stream2 = _BoundBytesIO(stream, length)
+                return self.subcon._parse(stream2, context, path)
+
+            def _build(self, obj, stream, context, path):
+                if not getattr(self, "includelength", False):
+                    return super()._build(obj, stream, context, path)
+                try:
+                    self.lengthfield.sizeof()
+                    if not stream.seekable:
+                        raise _SizeofError
+                    offset1 = stream.tell()
+                    self.lengthfield._build(0, stream, context, path)
+                    offset2 = stream.tell()
+                    self.subcon._build(obj, stream, context, path)
+                    offset3 = stream.tell()
+                    stream.seek(offset1)
+                    self.lengthfield._build(offset3 - offset1, stream, context, path)
+                    stream.seek(offset3)
+                except _SizeofError:
+                    data = self.subcon.build(obj, context)
+                    total = len(data) + self.lengthfield._sizeof(context, path)
+                    self.lengthfield._build(total, stream, context, path)
+                    _c_write_stream(stream, len(data), data)
+except Exception:
+    pass
 
 # ──────────────────────────────────────────────────────────────────────────────
 
