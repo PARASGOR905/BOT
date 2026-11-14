@@ -1,0 +1,17 @@
+needs_auth: false
+
+endpoints:
+  refresh: 'https://www.apps.disneyplus.com/api/internal/bff/v2/start'
+  tv_title: 'https://www.apps.disneyplus.com/api/internal/bff/v2/slugs/{id}'
+  tv_episodes: 'https://www.apps.disneyplus.com/api/internal/bff/'
+  manifest1: 'https://www.apps.disneyplus.com/api/internal/bff/v2/pages/watch'
+  manifest2: 'https://www.apps.disneyplus.com/api/internal/bff/v2/pages/detail'
+
+device:
+  os:
+    name: 'Windows'
+    version: 10
+
+  platform:
+    name: 'web'
+    version: '7.35.0'

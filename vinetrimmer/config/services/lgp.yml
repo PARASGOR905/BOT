@@ -1,0 +1,10 @@
+needs_auth: true
+
+endpoints:
+  site: 'https://lionsgateplay.com'
+  license: 'https://li-drm-lb.lionsgateplay.com/drm/lgin_prasar_bharti'
+
+headers:
+  Accept: '*/*'
+  Accept-Language: 'en-US,en;q=0.9'
+  User-Agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'

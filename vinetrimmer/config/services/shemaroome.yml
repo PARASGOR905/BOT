@@ -1,0 +1,5 @@
+needs_auth: true
+
+endpoints:
+  site: 'https://www.shemaroome.com'
+  play_url: 'https://www.shemaroome.com/users/user_all_lists'

@@ -1,0 +1,26 @@
+endpoints:
+  # JW Player Management API (used to resolve show slug -> playlist ID)
+  playlists_en: "https://api.jwplayer.com/v2/sites/pdEStcHj/playlists/"
+  playlists_fr: "https://api.jwplayer.com/v2/sites/7v5fDPr4/playlists/"
+
+  # JW Player CDN (used to fetch episode lists and stream sources)
+  media:    "https://cdn.jwplayer.com/v2/media/{media_id}"
+  playlist: "https://cdn.jwplayer.com/v2/playlists/{playlist_id}"
+  manifest: "https://cdn.jwplayer.com/manifests/{media_id}.m3u8"
+
+  # AMI content API (location check, EPG)
+  api_base: "https://api-twg.ami.ca"
+  location: "https://api-twg.ami.ca/v1/location"
+
+# JW Player site IDs (extracted from AMI+ app bundle)
+jwp_site_english: "pdEStcHj"
+jwp_site_french:  "7v5fDPr4"
+jwp_player_id:    "kwDmFFqx"
+
+# Public read-only merchant token for playlist search API
+# (extracted from AMI+ app bundle - safe to hardcode, used for read-only catalog queries)
+jwp_auth_token: "A_wPK12kkn-8cRsP7NPtzWInYmxkV1kwY3dUbmRwTXpaMmVqWlZNekI2U0ZaUlpVZHEn"
+
+# AMI+ is a free, accessible streaming service - no login required
+# Content is DRM-free (plain HLS/MP4 from cdn.jwplayer.com)
+# Cookies file is optional and not used for stream access

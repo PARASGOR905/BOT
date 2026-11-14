@@ -1,0 +1,80 @@
+decrypter: 'packager'
+tag: ''
+tag_sd: ''
+
+arguments: {}
+
+aria2c:
+  file_allocation: 'prealloc'
+  
+
+cdm:
+  default: 'xiaomi_mi_a1_15.0.0_60ceee88_8159_l3'
+  DisneyPlus: ''
+  Netflix: 'Decrypt Labs - KeyXtractor API [widevine]'
+  Amazon: ''
+  Max: ''
+  AppleTVPlus: ''
+  Waves: 'chromecdm_4.10.2449.0_l3'
+  Hulu: ''
+
+cdm_api:
+  - name: 'Decrypt Labs - KeyXtractor API [widevine]'
+    host: 'https://keyxtractor.decryptlabs.com'
+    key: 'decrypt_labs_special_ultimate'
+    device: 'widevine'
+    type: 'CHROME'
+    system_id: 36586
+    security_level: 3
+    path: '{data_dir}/key_store.db'
+
+credentials:
+  LGP: 'dMjJycT2S20BHja7.K/AB+2Ms9aDKPVnYFeqhziCqNUuGfkG9sXi4rYPuG2Skh99QnovweAigQICDrxnjSb8G3r5W4ySBr+0jitaQd/4srQY8MsS3IoJWu6Ekvg0GqiuLogOjr/B2HpSCik3EwUh9YkUkdw5fIC5cAQVTHB6XULCe1MYuG+j0UrUt19w+oYwlvP20UQ2NEcbls4jnKSgSF655CGrKLie+8iV/aVMeZH9bHoLCg3hoAQwtBXUxat9A0ZBIw63CizNa9/CDikpsTS8yp6J3ZAxOwzKl6UZDO7Ca+5ujPtMd6Izi05mFlAO5TMsRFuTByhhgQLhR7VdQLvxi517HVOm3TDsqz+PzPadlOHm8rNxnzfyDo0uz2xThPzb/CszEl0b0I2pc9Vqd6/YhmgWT1RHQvhODYVcMupfT4YMYZ9nZ2YxAlL+EjfFpKZJHEIqfs+W0tt28PIR3NDZGg1t7SYoCc+CAPQWnPXPJCO14KcjSv/gVOaw6ZqWJCsGZcgb6xRqSzihe3VH2/MkB52ie8iq8cFCqhdtBfH9QoYzXGbEMRrhVfldIaO21sQxiQGkKJZ/IfhL3vFIYmb7zAGlm5b3jDK7CYq/5uY9NPyVRo0DLFFByh+2Pz/e2MM22OcBm7EEWwX9F+jWaerC30vErW9gNJfoNezMbD77jRNoxmtvM/kMg6d9zNNSl2xOihqpEjZlkp5q4pcAyNMvvBsOwrK86Xnjpxc2GKYzRRdBuNlS9bS+s5vO2dsN0LIh9u8wkmB5GLlUvbGd5gZ9lcsrBA5hukLzcDordB3l/wH1/YtP2PTM/ZMZDMf6g5eF7trskPdiKy0ePpXce2AmLkc87/yZaPYzfaO63w5xC21fqJIK+CLafYN26nJCBF6fTKeKKSJvY+kQ1t497SUUWm/ZClJwVudr6s2StZX70MCbTP36T2PF+eisV+qVrHeSQXncMovkkMd5Ldis29A9qcga1AtxAyKQ+horueLkEsLeHvj0vbhEc6QRF16NMw3UONpQMntLok1JFyGbDqqAAdBP6MSoA9LMV5/057OBqJa2yLnxeQuo3lvwjc/faf4aqVyAVYNaq67J3ka5uEwueNS3+St/7jwTw8rKbB8mfHMaUTRzdeYYBusSBoKCmg2uOriAbM25RGwLKEvBhC1MPGpWoM1fwaGEa8yHBxzVII6o2cNiwfNX0VYEAvanvb+Ygoprw0/eU98nkHbhh3N3S42LAhucBy41aWjRWqk9abA+TITdPRkJHdMEbHraGLvH9dn+UpvgkoaPrO6i3VVTjp2F3/dJRdgwivYr2GShRAuxY3gv592m4IOVJ8921teb2Bhp0Hz4RTKxB3ySP2LL7XI3YrFIoAqwyojiiKZa6pikyTSEuIPHJWwd7EGYe2z65+e32vgoRbl9ORtj/Q6hCy5VeJ8puN7om5KpQrGnDeR2Atgljp3Yt'
+  HuluJP: 'email:password'
+  CTV: 'email:password'
+  Netflix: 'email:password'
+  DisneyPlus: 'email:password'
+  All4: 'email:password'
+  Stan: 'email:password'
+  Peacock: 'email:password'
+
+directories:
+  temp: ''
+  downloads: ''
+
+headers:
+  User-Agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'
+
+#'Crunchyroll/ANDROIDTV/3.45.0_22272'
+#'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'
+
+key_vaults:
+  - type: 'local'
+    name: 'Local'
+    path: '{data_dir}/key_store.db'
+
+  # - type: 'httpapi'   # Disabled - 401 Unauthorized (server down/expired)
+  #   name: vault
+  #   host: http://api.drmlab.io/vault/
+  #   password: N7kQp4XzL2mV8cHrY9tFw5BjUa6DeGs3
+
+output_template:
+  movies: '{title}.{year}.{quality}.{source}.WEB-DL.{audio}.{video}-{tag}'
+  series: '{title}.{season_episode}.{episode_name}.{quality}.{source}.WEB-DL.{audio}.{video}-{tag}'
+  series_folder: '{title}.{season_episode}.{episode_name}.{quality}.{source}.WEB-DL.{audio}.{video}-{tag}'
+  use_last_audio: false
+
+profiles:
+  default: 'default'
+
+default_proxy_service: 'nordvpn' # Options: 'surfshark', 'nordvpn' 'null'
+
+proxies: {}
+
+nordvpn:
+    username: ''
+    password: ''
+
+surfshark:
+    username: ''
+    password: ''

@@ -1,0 +1,20 @@
+needs_auth: true
+
+# Platform identifier sent to the MA GraphQL API.
+# "web"        → HLS (.m3u8) only, AVC-SDR — NO video tracks will appear in vt.
+# "android"    → DASH (.mpd), but only AVC-SDR manifests.
+# "android_tv" → DASH (.mpd) with AVC + HEVC/HDR10/DV variants — USE THIS for 4K (default).
+# "fire_tv"    → Same as android_tv.
+platform: 'android_tv'
+
+endpoints:
+  graphql: 'https://gateway.moviesanywhere.com/graphql'
+  license: 'https://licensing.moviesanywhere.com/licensing/v1/widevine/license'
+
+headers:
+  Origin: 'https://moviesanywhere.com'
+  Referer: 'https://moviesanywhere.com/'
+  # Android TV User-Agent — MA uses this to determine which stream tier to return.
+  # A TV/CTV User-Agent unlocks HEVC/HDR/DV manifests; a browser UA gives HLS/AVC only.
+  User-Agent: 'Dalvik/2.1.0 (Linux; U; Android 11; SHIELD Android TV Build/RQ1A.210105.003)'
+  X-MA-Platform: 'android_tv'

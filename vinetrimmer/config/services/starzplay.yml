@@ -1,0 +1,8 @@
+endpoints:
+  base: "https://starzplay.com"
+  catalog: "https://static.aws.playco.com/api/v1.0/mediaCatalog/titles"
+  license: "https://widevine-license.vudrm.tech/proxy"
+
+headers:
+  Origin: "https://starzplay.com"
+  Referer: "https://starzplay.com/"

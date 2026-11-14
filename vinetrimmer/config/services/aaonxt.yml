@@ -1,0 +1,4 @@
+needs_auth: false
+
+endpoints:
+  playback: https://aao-api.fastpix.io/fpvideo/get_playback_url

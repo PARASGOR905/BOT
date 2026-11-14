@@ -1,0 +1,17 @@
+needs_auth: true
+
+endpoints:
+  # Base URLs (placeholders - replace with actual Shudder API endpoints)
+  base_api: 'https://api.shudder.com/v2'
+  login: 'https://api.shudder.com/v2/login'
+  
+  # Endpoint to get the MPD/M3U8 manifest URL or playback data
+  manifest: 'https://api.shudder.com/v2/catalog/content/{title_id}/play'
+  
+  # Widevine License server
+  license: 'https://license.shudder.com/widevine' # Replace with actual
+
+credentials:
+  email: 'tawshastrange@uberip.com'
+  password: 'e5yazP2>s"ifTL#'
+  # token: '' # Or an auth token if appropriate

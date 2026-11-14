@@ -1,0 +1,59 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment files & local bot runtime configs
+.env
+bot_settings.json
+*.bak
+
+# Sensitive streaming credentials & active config
+vinetrimmer/vinetrimmer.yml
+!vinetrimmer/vinetrimmer.yml.example
+
+# Sensitive CDM devices, keys, vaults & local databases
+*.db
+*.sqlite
+*.sqlite3
+*.prd
+*.wvd
+*.key
+*.pem
+*.dat
+key_store.db
+vinetrimmer/devices/
+vinetrimmer/cookies/
+vinetrimmer/cache/
+vinetrimmer/scratch/
+vinetrimmer/logs/
+vinetrimmer/key_store.db
+scripts/subby/key_store.db
+
+# Executables & large binary distributions (>100MB exceeds GitHub push limits)
+binaries/
+vinetrimmer/binaries/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Temporary downloads and intermediate segmented chunks
+downloads/*
+!downloads/mux.py
+temp/
+posters/
+
+# IDE & Editor caches
+.idea/
+.vscode/
+.qodo/
+*.log
+*.pdf

@@ -1,0 +1,20 @@
+endpoints:
+  unauth: "https://gw.cds.amcn.com/auth-orchestration-id/api/v1/unauth"
+  playback: "https://gw.cds.amcn.com/playback-id/api/v1/playback/{nid}"
+
+brightcove:
+  account_id: "6245817279001"
+  player_id: "jfYzwcazWU"
+  policy_key: "BCpkADawqM1LJviH1jBByd07QuuCwmrOoWuiN-utNJ5wowTgElLvM8pXD7aQTZgIsyBQlJ521buAG3_6QnaAdmi9SKnmKFofT6fJXEYXVRQXIpuooMOL9CjYB8Ujq5GMmxykGLoV7DL6CtBK"
+
+headers:
+  X-AMCN-DEVICE-ID: "webapp-server"
+  X-AMCN-DEVICE-AD-ID: "webapp-server"
+  X-AMCN-SERVICE-ID: "amcplus"
+  X-AMCN-SERVICE-GROUP-ID: "10"
+  X-AMCN-TENANT: "amcn"
+  X-AMCN-NETWORK: "amcplus"
+  X-AMCN-PLATFORM: "web"
+  X-CCPA-DO-NOT-SELL: "default"
+  X-AMCN-LANGUAGE: "en-us"
+  X-AMCN-APP-VERSION: "3.81.0"

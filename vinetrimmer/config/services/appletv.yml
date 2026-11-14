@@ -1,0 +1,24 @@
+user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 #com.apple.tv/1.0 iOS/16.1 AppleTV/16.1 model/AppleTV6,2 hwp/t8011 build/20K71 (3; dt:163)'
+
+endpoints:
+  title: 'https://tv.apple.com/api/uts/v3/{type}/{id}'
+  tv_episodes: 'https://tv.apple.com/api/uts/v3/shows/{id}/episodes'
+  manifest: 'https://tv.apple.com/api/uts/v2/view/product/{id}/personalized'
+  license: 'https://play-edge.itunes.apple.com/WebObjects/MZPlayLocal.woa/wa/fpsRequest'
+  lookup: 'https://uts-api.itunes.apple.com/uts/v3/contents/lookup'
+  storefronts: 'https://uts-api.itunes.apple.com/uts/v3/storefronts'
+
+params:
+  {
+    'utsk': '6e3013c6d6fae3c2::::::baf1a0dbeffe95a4',
+    'utscf': 'OjAAAAAAAAA~',
+    'caller': 'web',
+    'sf': '143441',
+    'v': '56',
+    'pfm': 'web',
+    'locale': 'en-US',
+    'l': 'en',
+    'ctx_brand': 'tvs.sbd.4000',
+    'count': '100',
+    'skip': '0',
+ }

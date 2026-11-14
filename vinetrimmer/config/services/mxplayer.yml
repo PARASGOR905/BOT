@@ -1,0 +1,6 @@
+needs_auth: false
+
+endpoints:
+  detail: https://api.mxplayer.in/v1/web/detail/video
+  seasons: https://api.mxplayer.in/v1/web/detail/tab/tvshowseasons
+  episodes: https://api.mxplayer.in/v1/web/detail/tab/tvshowepisodes

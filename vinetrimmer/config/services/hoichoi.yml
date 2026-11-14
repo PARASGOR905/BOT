@@ -1,0 +1,8 @@
+needs_auth: true
+
+endpoints:
+  content: 'https://prod-contents-api.hoichoi.dev/contents/api/v1/contents'
+  entitlement: 'https://prod-api.hoichoi.dev/contents/api/v1/entitlement'
+  auth_code: 'https://prod-api.hoichoi.dev/core/api/v1/auth/signinup/code'
+  auth_consume: 'https://prod-api.hoichoi.dev/core/api/v1/auth/signinup/code/consume'
+  refresh: 'https://prod-api.hoichoi.dev/core/api/v1/auth/session/refresh'

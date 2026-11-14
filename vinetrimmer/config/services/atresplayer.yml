@@ -1,0 +1,4 @@
+endpoints:
+  login: 'https://account.atresplayer.com/auth/v1/login'
+  url: 'https://api.atresplayer.com/client/v1/url'
+  player: 'https://api.atresplayer.com/player/v1'

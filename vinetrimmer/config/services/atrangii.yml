@@ -1,0 +1,7 @@
+needs_auth: false
+
+endpoints:
+  home: https://gway.atrangii.in/r/api/ullu2/home/getHomeScreen/cdiOpn
+  detail: https://gway.atrangii.in/r/api/ullu2/media/getMediaByTitleYearSlugAndFamilySafe/cdiOpn
+  is_allowed: https://gway.atrangii.in/r/api/ullu2/media/isAllowedW/cdiOpn
+  token: https://gway.atrangii.in/r/oauth/token

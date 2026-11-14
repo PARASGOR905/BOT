@@ -1,0 +1,6 @@
+needs_auth: false
+
+endpoints:
+  site: https://www.aha.video
+  content: https://www.aha.video/api/v1/content
+  playback: https://www.aha.video/api/v1/playback

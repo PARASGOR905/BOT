@@ -1,0 +1,6 @@
+needs_auth: false
+
+endpoints:
+  site: https://www.manoramamax.com
+  content: https://www.manoramamax.com/api/v1/content
+  playback: https://www.manoramamax.com/api/v1/playback

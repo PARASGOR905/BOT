@@ -1,0 +1,30 @@
+esk_key: HOBNPuy7H3T5meJJAfyLkJlHaX2dXeEB
+
+endpoints:
+  device_code:          https://auth.zee5.com/useraction/device/getcode
+  device_token:         https://auth.zee5.com/useraction/device/getdeviceuser
+  token_refresh:        https://auth.zee5.com/v1/user/renew
+  mobile_otp:           https://auth.zee5.com/v1/user/sendotp
+  mobile_verify:        https://auth.zee5.com/v1/user/verifyotp
+  platform_token:       https://launchapi.zee5.com/launch
+  platform_token_alt:   https://useraction.zee5.com/token/platform_tokens.php
+  tvshow:               https://gwapi.zee5.com/content/tvshow/{show_id}
+  playback:             https://spapi.zee5.com/singlePlayback/v2/getDetails/secure
+  license:              https://spapi.zee5.com/playready/getLicense
+
+device:
+  name:             AndroidTv_app
+  os:               Android
+  os_version:       "9"
+  platform:         ctv_android
+  platform_version: "28"
+  model:            4K Hisense Android TV
+  type:             tv
+  chipset:          MT5886
+  app_version:      5.42.0
+  user_agent:       "Dalvik/2.1.0 (Linux; U; Android 9; 4K Hisense Android TV Build/PPR1.180610.011)"
+
+defaults:
+  region:   IN
+  language: en
+  state:    MH

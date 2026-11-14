@@ -1,0 +1,4 @@
+needs_auth: false
+
+endpoints:
+  site: https://utshob.live

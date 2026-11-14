@@ -1,0 +1,16 @@
+needs_auth: false
+
+endpoints:
+  site: 'https://jojoapp.in'
+  api: 'https://api.thesupercms.com'
+  socket: 'https://socket.thesupercms.com'
+
+headers:
+  Content-Type: 'application/json'
+  Accept: 'application/json'
+  deviceTypeCode: '3'
+  deviceID: '77845b99-9843-498b-8493-3ecfa89e3a57'
+  language: '1'
+  appversion: '2.0.0'
+  project: 'JOJO'
+  User-Agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'

@@ -1,0 +1,4 @@
+needs_auth: true
+
+endpoints:
+  site: 'https://www.playflix.app'

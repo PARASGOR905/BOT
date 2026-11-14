@@ -1,0 +1,6 @@
+needs_auth: false
+
+endpoints:
+  pages: https://prod-api-cached-2.viewlift.com/content/pages
+  entitlement: https://prod-api.viewlift.com/entitlement/video/status
+  license: https://prod-api.viewlift.com/v1/license/widevine/acquire

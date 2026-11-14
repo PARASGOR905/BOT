@@ -1,0 +1,124 @@
+decrypter: 'packager'
+tag: 'RGP'
+tag_sd: ''
+
+arguments: {}
+
+aria2c:
+  file_allocation: 'none'
+  max_connection_per_server: '16'
+  split: '16'
+  max_concurrent_downloads: '16'
+  timeout: '15'
+  max_tries: '5'
+  retry_wait: '1'
+  
+
+cdm:
+  default: 'xiaomi_mi_a1_15.0.0_60ceee88_8159_l3'
+  DisneyPlus: 'changhong_ai_pont_15.0.0_13182_l1'
+  Netflix: 'Decrypt Labs - KeyXtractor API [playready]'
+  Amazon: 'hisense_smarttv_4k_ffm_65u67kua_sl3000'
+  Zee5: 'hisense_smarttv_he55a7000euwts_sl3000'
+  Max: 'changhong_ai_pont_15.0.0_13182_l1'
+  AppleTV: 'arcelik_smart_tv_optomax_nt_sl3000'
+  NowTVUK: 'hisense_smarttv_4k_ffm_65u67kua_sl3000'
+  Waves: 'xiaomi_mi_a1_15.0.0_60ceee88_8159_l3'
+  Hulu: 'arcelik_smart_tv_optomax_nt_sl3000'
+  Watcho: 'xiaomi_mi_a1_15.0.0_60ceee88_8159_l3'
+  Vivamax: ''
+  AAONXT: 'xiaomi_mi_a1_15.0.0_60ceee88_8159_l3'
+  HBOMax: 'arcelik_smart_tv_optomax_nt_sl3000'
+  MoviesAnywhere: 'mitv_17.0.0_8eb21610_18082_l1'
+  Mubi: 'arcelik_smart_tv_optomax_nt_sl3000'
+  Crunchyroll: 'Samsung Internet TV 2021NIKEM2 SL3000'
+  DisneyPlus: 'arcelik_smart_tv_optomax_nt_sl3000'
+  Peacock: 'my_android_tv_14.0.0_843ffa0c_16996_l1'
+  Hoichoi: 'xiaomi_mi_a1_15.0.0_60ceee88_8159_l3'
+  ParamountPlus: 'changhong_tv_ikebukuro_14.0.0_ab0562b1_13181_l1'
+  TarangPlus: 'xiaomi_mi_a1_15.0.0_60ceee88_8159_l3'
+
+
+cdm_api:
+  - name: 'Decrypt Labs - KeyXtractor API [widevine]'
+    host: 'https://keyxtractor.decryptlabs.com'
+    key: 'your_api_key_here'
+    device: 'widevine'
+    type: 'CHROME'
+    system_id: 36586
+    security_level: 3
+    path: '{data_dir}/key_store.db'
+  - name: 'Decrypt Labs - KeyXtractor API [playready]'
+    host: 'https://keyxtractor.decryptlabs.com'
+    key: 'your_api_key_here'
+    device: 'SL2000'
+    type: 'PLAYREADY'
+    system_id: 1
+    security_level: 2000
+
+credentials:
+  HuluJP: 'email:password'
+  CTV: 'email:password'
+  Netflix: 'email:password'
+  Amazon: 'email:password'
+  DisneyPlus: 'email:password'
+  All4: 'email:password'
+  Stan: 'email:password'
+  Peacock: 'email:password'
+  Jojo: 'sessionid:your_session_id'
+  Vivamax: 'email:password'
+  HBOMax: 'email:password'
+  Mubi: 'email:password'
+  PeacockTV: 'email:password'
+  BraviaCORE: 'your_sony_email@example.com:your_sony_password'
+  AtresPlayer: 'email:password'
+  NowTVUK: 'email:password'
+  ParamountPlus: 'email:password'
+  TarangPlus: 'email:password'
+  TVING: 'email:password'
+
+
+
+directories:
+  temp: ''
+  downloads: ''
+
+headers:
+  User-Agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'
+
+#'Crunchyroll/ANDROIDTV/3.45.0_22272'
+#'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'
+
+key_vaults:
+  - type: 'local'
+    name: 'Local'
+    path: '{data_dir}/key_store.db'
+
+  - type: 'httpapi'
+    name: vault
+    host: http://api.drmlab.io/vault/
+    password: your_vault_password_here
+    
+output_template:
+  movies: '{title}.{year}.{quality}.{source}.WEB-DL.{audio}.{video}-{tag}'
+  series: '{title}.{season_episode}.{episode_name}.{quality}.{source}.WEB-DL.{audio}.{video}-{tag}'
+  series_folder: '{title}.{season_episode}.{episode_name}.{quality}.{source}.WEB-DL.{audio}.{video}-{tag}'
+  use_last_audio: false
+
+profiles:
+  default: 'default'
+
+default_proxy_service: 'nordvpn' # Options: 'surfshark', 'nordvpn' 'null'
+
+proxies: {}
+
+nordvpn:
+    username: ''
+    password: ''
+
+surfshark:
+    username: ''
+    password: ''
+
+gofile:
+  token: 'your_gofile_token_here'

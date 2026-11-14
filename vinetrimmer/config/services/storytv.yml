@@ -1,0 +1,5 @@
+needs_auth: false
+
+endpoints:
+  api: 'https://api.storytv.asia'
+  cdn: 'https://cdn.storytv.asia'

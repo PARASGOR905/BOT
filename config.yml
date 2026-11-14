@@ -1,0 +1,16 @@
+# TarangPlus Service Configuration
+service:
+  name: "tarangplus-service"
+  port: 8000
+  host: "0.0.0.0"
+
+tarangplus:
+  api_url: "https://api.tarangplus.in"
+  auth_token: "3zZmzoHg8z6SM3wpDoyw"
+  region: "IN"
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+
+features:
+  live_tv: true
+  free_movies: true
+  m3u_playlist: true

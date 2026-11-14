@@ -1,0 +1,7 @@
+needs_auth: true
+
+endpoints:
+  site: https://www.viki.com
+  api: https://api.viki.io/v4
+  app_id: 100005c
+  license: https://viki.keydelivery.widevine.com

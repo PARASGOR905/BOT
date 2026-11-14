@@ -1,0 +1,13 @@
+needs_auth: true
+
+endpoints:
+  site: 'https://www.stage.in'
+  api:  'https://stageapi.stage.in'
+  movie_details: '/nest/contents/movies/details'
+  show_details:  '/nest/contents/shows/details'
+
+headers:
+  app_id:      'in.stage.web'
+  platform:    'web'
+  os:          'android'
+  api_version: '2'

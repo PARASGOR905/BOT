@@ -1,0 +1,7 @@
+endpoints:
+  search: "https://api.gain.tv/v1/search"
+  playback: "https://api.gain.tv/2da7kf8jf/CALL/ProfileTitle/getPlaybackInfo/{profile_id}/?videoContentId={id}&packageType=Dash&__culture=tr-tr"
+  metadata: "https://api.gain.tv/2da7kf8jf/CALL/ProfileTitle/getPlaybackInfo/{profile_id}/?videoContentId={id}&packageType=Dash&__culture=tr-tr"
+  profile_title: "https://api.gain.tv/2da7kf8jf/CALL/ProfileTitle/getProfileTitleById/{profile_id}?titleId={title_id}&__culture=tr-tr"
+  profile_season: "https://api.gain.tv/2da7kf8jf/CALL/ProfileTitle/getProfileSeason/{profile_id}?seasonId={season_id}&titleId={title_id}&__culture=tr-tr"
+user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"

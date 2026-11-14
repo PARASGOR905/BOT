@@ -1,0 +1,6 @@
+needs_auth: true
+
+endpoints:
+  watch: https://web.vivamax.net/watch/{title_id}
+  play: https://api2.vivamax.net/v1/movies/{title_id}/play
+  license: https://api2.vivamax.net/v1/drm/onwards-widevine

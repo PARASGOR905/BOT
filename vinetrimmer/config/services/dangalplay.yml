@@ -1,0 +1,12 @@
+needs_auth: false
+
+endpoints:
+  site: 'https://www.dangalplay.com'
+  master_config: 'https://static.creatorott.com/dangal_sms/master_prod_sms.json'
+  api: 'https://dangal-api.dangalplay.com/microplay/v1'
+  search: 'https://dangal-search.videostech.cloud/dangal/v1/content/search_master'
+
+headers:
+  app_id: '5005'
+  platform: 'web'
+  device_type: 'web'
