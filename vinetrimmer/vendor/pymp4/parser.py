@@ -20,6 +20,17 @@ from uuid import UUID
 from construct import *
 from construct.lib import *
 
+# Compatibility shim: construct >= 2.9 removed PaddedString; replace with Bytes(n) which
+# reads/writes exactly n bytes, matching the old fixed-width string behaviour.
+try:
+    PaddedString  # noqa: F821 – already in namespace from star-import (construct < 2.9)
+except NameError:
+    from construct import Bytes as _compat_Bytes
+
+    def PaddedString(length, encoding):  # noqa: N802
+        """Drop-in for construct's removed PaddedString: reads `length` raw bytes."""
+        return _compat_Bytes(length)
+
 from vinetrimmer.vendor.pymp4.adapters import ISO6392TLanguageCode, MaskedInteger, UUIDBytes
 from vinetrimmer.vendor.pymp4.subconstructs import TellPlusSizeOf
 

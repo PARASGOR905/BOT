@@ -735,6 +735,87 @@ def build_service_picker_keyboard(sid):
         ]
     }
 
+
+# Language metadata: code -> display label & row grouping
+LANG_META = {
+    "hin": "Hindi", "tam": "Tamil", "tel": "Telugu", "eng": "English",
+    "mal": "Malayalam", "kan": "Kannada", "ben": "Bengali", "mar": "Marathi",
+    "pun": "Punjabi", "ori": "Odia", "guj": "Gujarati", "san": "Sanskrit",
+    "jpn": "Japanese", "kor": "Korean", "zho": "Chinese", "fra": "French",
+    "spa": "Spanish", "por": "Portuguese", "deu": "German", "ara": "Arabic",
+}
+LANG_ROW_ORDER = [
+    ["hin", "tam", "tel", "eng"],
+    ["mal", "kan", "ben", "mar"],
+    ["pun", "ori", "guj"],
+    ["jpn", "kor", "zho", "fra", "spa", "por", "deu", "ara"],
+]
+
+def _chunk_list(lst, n):
+    """Split list into sub-lists of max length n."""
+    return [lst[i:i+n] for i in range(0, len(lst), n)]
+
+
+def fetch_track_metadata(service, url, extra=""):
+    """
+    Run `vt dl --list <service> <url>` and parse available tracks.
+    Returns dict: { "qualities": ["2160p","1080p",...], "audio_codes": ["hin","tam",...],
+                    "seasons": [1,2,...], "ep_counts": {1: 12, 2: 8} }
+    Returns None on timeout/error.
+    """
+    cmd = f'poetry run vt dl --list {extra} {service} "{url}"'
+    try:
+        proc = subprocess.run(
+            cmd, shell=True, cwd=str(WORKING_DIR),
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, encoding="utf-8", errors="replace", timeout=45
+        )
+        output = proc.stdout or ""
+    except subprocess.TimeoutExpired:
+        return None
+    except Exception:
+        return None
+
+    qualities = []
+    audio_codes = []
+    seasons = set()
+    ep_counts = {}   # {season_num: count}
+
+    for line in output.splitlines():
+        # --- Video qualities ---
+        for q in ["2160p", "1080p", "720p", "576p", "480p", "360p", "240p"]:
+            if q in line and q not in qualities:
+                qualities.append(q)
+
+        # --- Audio language codes (3-letter ISO 639-2) ---
+        # Vinetrimmer typically prints lines like:  [A] hin: Hindi  or  Language: hin
+        m_lang = re.search(r'\b([a-z]{3})\b', line)
+        if m_lang:
+            code = m_lang.group(1)
+            if code in LANG_META and code not in audio_codes:
+                audio_codes.append(code)
+
+        # --- Season/episode lines like S01E01 or S01 E12 ---
+        m_ep = re.findall(r'[Ss](\d{1,2})[Ee](\d{1,3})', line)
+        for s_str, e_str in m_ep:
+            s = int(s_str)
+            e = int(e_str)
+            seasons.add(s)
+            ep_counts[s] = max(ep_counts.get(s, 0), e)
+
+    # Order qualities from highest to lowest
+    q_order = ["2160p", "1080p", "720p", "576p", "480p", "360p", "240p"]
+    qualities = [q for q in q_order if q in qualities] or qualities
+
+    return {
+        "qualities": qualities,
+        "audio_codes": audio_codes,
+        "seasons": sorted(seasons),
+        "ep_counts": ep_counts,
+        "raw": output[:2000],
+    }
+
+
 def build_download_keyboard(sid, session):
     curr_q = session.get("quality", "1080p")
     curr_langs = session.get("audio_langs", ["hin", "tam", "tel"])
@@ -745,57 +826,101 @@ def build_download_keyboard(sid, session):
     info = SUPPORTED_SERVICES.get(curr_srv, {"name": curr_srv, "icon": "🎬"})
     srv_label = f"{info.get('icon', '🎬')} {curr_srv}"
 
-    # Row 1: Qualities
+    # --- Actual track metadata (if already fetched) ---
+    meta = session.get("track_meta")           # None = not fetched yet / failed
+    meta_fetching = session.get("meta_fetching", False)
+
+    # Row 1: Quality buttons — use real qualities if available
+    if meta and meta.get("qualities"):
+        avail_q = meta["qualities"]
+        if "best" not in avail_q:
+            avail_q = avail_q + ["best"]
+    else:
+        avail_q = ["2160p", "1080p", "720p", "480p", "best"]
+
     q_row = []
-    for q_code, q_label in [("2160p", "2160p"), ("1080p", "1080p"), ("720p", "720p"), ("480p", "480p"), ("best", "Best")]:
+    for q_code in avail_q:
+        q_label = q_code.upper() if q_code != "best" else "Best"
         check = "✅ " if curr_q == q_code else ""
         q_row.append({"text": f"{check}{q_label}", "callback_data": f"dl:{sid}:q:{q_code}"})
 
-    # Row 2: Indian Audio Languages
-    a_row1 = []
-    for code, label in [("hin", "Hindi"), ("tam", "Tamil"), ("tel", "Telugu"), ("eng", "English")]:
-        check = "✅ " if code in curr_langs else ""
-        a_row1.append({"text": f"{check}{label}", "callback_data": f"dl:{sid}:a:{code}"})
+    keyboard_rows = [q_row]
 
-    # Row 3: More Audio Languages
-    a_row2 = []
-    for code, label in [("mal", "Malayalam"), ("kan", "Kannada"), ("ben", "Bengali"), ("mar", "Marathi")]:
-        check = "✅ " if code in curr_langs else ""
-        a_row2.append({"text": f"{check}{label}", "callback_data": f"dl:{sid}:a:{code}"})
+    # --- Audio rows — use real audio tracks if available ---
+    if meta and meta.get("audio_codes"):
+        avail_langs = meta["audio_codes"]
+        # Build rows of up to 4 buttons each
+        rows_data = _chunk_list(avail_langs, 4)
+        for row_codes in rows_data:
+            row = []
+            for code in row_codes:
+                label = LANG_META.get(code, code.upper())
+                check = "✅ " if code in curr_langs else ""
+                row.append({"text": f"{check}{label}", "callback_data": f"dl:{sid}:a:{code}"})
+            keyboard_rows.append(row)
+    else:
+        # Fallback: show all standard language buttons
+        for row_codes in LANG_ROW_ORDER[:2]:
+            row = []
+            for code in row_codes:
+                label = LANG_META.get(code, code)
+                check = "✅ " if code in curr_langs else ""
+                row.append({"text": f"{check}{label}", "callback_data": f"dl:{sid}:a:{code}"})
+            keyboard_rows.append(row)
 
-    # Row 4: All/Orig & Codec
-    a_row3 = []
+    # All / Original + Codec row
+    a_misc = []
     for code, label in [("all", "All Audios"), ("orig", "Original")]:
         check = "✅ " if code in curr_langs else ""
-        a_row3.append({"text": f"{check}{label}", "callback_data": f"dl:{sid}:a:{code}"})
-
+        a_misc.append({"text": f"{check}{label}", "callback_data": f"dl:{sid}:a:{code}"})
     c_check_264 = "✅ " if curr_codec.upper() == "H264" else ""
     c_check_265 = "✅ " if curr_codec.upper() == "H265" else ""
-    a_row3.append({"text": f"{c_check_264}H264", "callback_data": f"dl:{sid}:c:H264"})
-    a_row3.append({"text": f"{c_check_265}H265", "callback_data": f"dl:{sid}:c:H265"})
+    a_misc.append({"text": f"{c_check_264}H264", "callback_data": f"dl:{sid}:c:H264"})
+    a_misc.append({"text": f"{c_check_265}H265", "callback_data": f"dl:{sid}:c:H265"})
+    keyboard_rows.append(a_misc)
 
-    keyboard_rows = [q_row, a_row1, a_row2, a_row3]
-
-    # Series Episode Selection Rows
+    # --- Episode Selection rows (series mode) ---
     if is_series:
-        ep_row1 = []
-        for ep_code, ep_label in [("all", "All Eps"), ("S01E01", "Ep 1"), ("S01E02", "Ep 2"), ("S01E03", "Ep 3"), ("S01E04", "Ep 4")]:
-            check = "✅ " if curr_wanted == ep_code else ""
-            ep_row1.append({"text": f"{check}{ep_label}", "callback_data": f"dl:{sid}:w:{ep_code}"})
+        if meta and meta.get("seasons"):
+            # Build dynamic episode buttons from real metadata
+            seasons = meta["seasons"]
+            ep_counts = meta.get("ep_counts", {})
+            for s in seasons:
+                ep_total = ep_counts.get(s, 0)
+                s_str = f"S{s:02d}"
+                ep_btns = [{"text": f"{'✅ ' if curr_wanted == s_str else ''}{s_str} All",
+                             "callback_data": f"dl:{sid}:w:{s_str}"}]
+                if ep_total > 0:
+                    # Individual episode buttons, up to 10 shown
+                    for e in range(1, min(ep_total + 1, 11)):
+                        code = f"{s_str}E{e:02d}"
+                        label = f"E{e:02d}"
+                        ep_btns.append({"text": f"{'✅ ' if curr_wanted == code else ''}{label}",
+                                        "callback_data": f"dl:{sid}:w:{code}"})
+                # Split into rows of 5
+                for chunk in _chunk_list(ep_btns, 5):
+                    keyboard_rows.append(chunk)
+        else:
+            # Fallback static episode buttons
+            ep_row1 = []
+            for ep_code, ep_label in [("all", "All Eps"), ("S01E01", "Ep 1"), ("S01E02", "Ep 2"), ("S01E03", "Ep 3"), ("S01E04", "Ep 4")]:
+                check = "✅ " if curr_wanted == ep_code else ""
+                ep_row1.append({"text": f"{check}{ep_label}", "callback_data": f"dl:{sid}:w:{ep_code}"})
 
-        ep_row2 = []
-        for ep_code, ep_label in [("S01E05", "Ep 5"), ("S01E06", "Ep 6"), ("S01E01-S01E05", "E1-5"), ("S01", "S01 All"), ("S02", "S02 All")]:
-            check = "✅ " if curr_wanted == ep_code else ""
-            ep_row2.append({"text": f"{check}{ep_label}", "callback_data": f"dl:{sid}:w:{ep_code}"})
+            ep_row2 = []
+            for ep_code, ep_label in [("S01E05", "Ep 5"), ("S01E06", "Ep 6"), ("S01E01-S01E05", "E1-5"), ("S01", "S01 All"), ("S02", "S02 All")]:
+                check = "✅ " if curr_wanted == ep_code else ""
+                ep_row2.append({"text": f"{check}{ep_label}", "callback_data": f"dl:{sid}:w:{ep_code}"})
 
-        keyboard_rows.extend([ep_row1, ep_row2])
+            keyboard_rows.extend([ep_row1, ep_row2])
 
-    # Mode Toggle, Service Switch & List Tracks
-    series_btn_text = "📺 Series: ON" if is_series else "🎬 Movie Mode (Tap for Series)"
+    # Mode Toggle, Service Switch & Fetch Tracks
+    series_btn_text = "📺 Series: ON" if is_series else "🎬 Movie (Tap→Series)"
+    fetch_btn_text = "🔄 Fetching…" if meta_fetching else ("🔁 Re-fetch Tracks" if meta else "🔍 Fetch Tracks")
     ctrl_row = [
         {"text": series_btn_text, "callback_data": f"dl:{sid}:tseries"},
         {"text": f"🔄 {srv_label}", "callback_data": f"dl:{sid}:ch_srv"},
-        {"text": "📋 Tracks", "callback_data": f"dl:{sid}:list"}
+        {"text": fetch_btn_text, "callback_data": f"dl:{sid}:fetch"},
     ]
     keyboard_rows.append(ctrl_row)
 
@@ -826,6 +951,17 @@ def build_download_text(session):
         w_disp = "All Episodes" if w == "all" else w
         eps_str = f"🎯 <b>Episodes:</b> <code>{w_disp}</code>\n"
 
+    meta = session.get("track_meta")
+    fetching = session.get("meta_fetching", False)
+    if fetching:
+        track_line = "🔍 <i>Fetching track info…</i>"
+    elif meta is None:
+        track_line = "💡 <i>Tap 🔍 Fetch Tracks to load real audio/quality options</i>"
+    else:
+        q_avail = ", ".join(meta.get("qualities", [])) or "?"
+        a_avail = ", ".join(meta.get("audio_codes", [])) or "?"
+        track_line = f"📊 <b>Available:</b> <code>{q_avail}</code> | 🔊 <code>{a_avail}</code>"
+
     return (
         f"{service_icon} <b>{service_name} ({srv}) Download Setup</b> ({content_type})\n"
         f"🔗 <b>URL:</b> <code>{session['url']}</code>{extra_str}\n\n"
@@ -833,8 +969,9 @@ def build_download_text(session):
         f"🎞 <b>Codec:</b> <code>{session.get('vcodec', 'H264')}</code>\n"
         f"🔊 <b>Audio:</b> <code>{langs_display}</code>\n"
         f"{eps_str}"
+        f"{track_line}\n"
         f"☁️ <b>Auto Drive Upload:</b> <code>{'ON' if AUTO_DRIVE_UPLOAD else 'OFF'}</code> (<code>{UPLOAD_ENGINE}</code>)\n\n"
-        f"<i>Tap buttons below to change Quality, Audio & Episodes:</i>"
+        f"<i>Tap buttons below to change Quality, Audio &amp; Episodes:</i>"
     )
 
 
@@ -852,6 +989,35 @@ def parse_url_and_extra(raw_input):
         url = tokens[0].strip('"\'')
         extra_parts = tokens[1:]
     return url, " ".join(extra_parts)
+
+
+def _do_fetch_and_refresh(sid, service, url, extra, chat_id):
+    """Background thread: fetch track metadata then refresh the Telegram message."""
+    sess = pending_downloads.get(sid)
+    if not sess:
+        return
+    meta = fetch_track_metadata(service, url, extra)
+    sess = pending_downloads.get(sid)   # re-check after the blocking call
+    if not sess:
+        return
+    sess["track_meta"] = meta           # None means fetch failed / no info
+    sess["meta_fetching"] = False
+
+    # Smart defaults: if movie (not series) auto-select only available audio langs
+    if meta and meta.get("audio_codes") and not sess.get("is_series"):
+        # filter the user's DEFAULT_AUDIO_LANGS to only those actually present
+        filtered = [l for l in sess["audio_langs"] if l in meta["audio_codes"]]
+        if filtered:
+            sess["audio_langs"] = filtered
+        elif meta["audio_codes"]:
+            # None of the defaults are available; pick the first available
+            sess["audio_langs"] = [meta["audio_codes"][0]]
+
+    text = build_download_text(sess)
+    kb = build_download_keyboard(sid, sess)
+    msg_id = sess.get("message_id")
+    if msg_id:
+        edit_message(chat_id, msg_id, text, reply_markup=kb)
 
 
 def initiate_download_setup(chat_id, service, raw_input):
@@ -880,6 +1046,8 @@ def initiate_download_setup(chat_id, service, raw_input):
         "quality": DEFAULT_QUALITY,
         "vcodec": DEFAULT_VCODEC,
         "audio_langs": list(DEFAULT_AUDIO_LANGS),
+        "track_meta": None,
+        "meta_fetching": True,          # will auto-fetch in background
         "created_at": time.time()
     }
 
@@ -894,6 +1062,13 @@ def initiate_download_setup(chat_id, service, raw_input):
     res = send_message(chat_id, text, reply_markup=keyboard)
     if res and res.get("ok"):
         pending_downloads[sid]["message_id"] = res["result"]["message_id"]
+
+    # Kick off background metadata fetch (non-blocking)
+    threading.Thread(
+        target=_do_fetch_and_refresh,
+        args=(sid, service, url, extra, chat_id),
+        daemon=True
+    ).start()
 
 
 def start_session_download(chat_id, session_id, auto_pipeline=False):
@@ -1151,6 +1326,22 @@ def handle_callback_query(cb):
 
             elif action == "auto":
                 start_session_download(chat_id, sid, auto_pipeline=True)
+
+            elif action == "fetch":
+                # Manual (re-)fetch of track metadata
+                if session.get("meta_fetching"):
+                    answer_callback_query(cb_id, text="⏳ Already fetching…", show_alert=False)
+                    return
+                session["meta_fetching"] = True
+                session["track_meta"] = None
+                # Refresh keyboard to show "Fetching…" state
+                edit_message(chat_id, message_id, build_download_text(session),
+                             reply_markup=build_download_keyboard(sid, session))
+                threading.Thread(
+                    target=_do_fetch_and_refresh,
+                    args=(sid, session["service"], session["url"], session.get("extra", ""), chat_id),
+                    daemon=True
+                ).start()
 
             elif action == "list":
                 service = session["service"]
