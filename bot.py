@@ -622,6 +622,8 @@ def build_download_keyboard(sid, session):
     curr_q = session.get("quality", "1080p")
     curr_langs = session.get("audio_langs", ["hin", "tam", "tel"])
     curr_codec = session.get("vcodec", "H264")
+    curr_wanted = session.get("wanted", "all")
+    is_series = session.get("is_series", False)
 
     # Row 1: Qualities
     q_row = []
@@ -652,44 +654,64 @@ def build_download_keyboard(sid, session):
     a_row3.append({"text": f"{c_check_264}H264", "callback_data": f"dl:{sid}:c:H264"})
     a_row3.append({"text": f"{c_check_265}H265", "callback_data": f"dl:{sid}:c:H265"})
 
-    # Row 5: Primary Action Buttons
-    act_row1 = [
-        {"text": "🚀 Start Download", "callback_data": f"dl:{sid}:start"},
-        {"text": "⚡ Auto (Mux+Up)", "callback_data": f"dl:{sid}:auto"}
-    ]
+    keyboard_rows = [q_row, a_row1, a_row2, a_row3]
 
-    # Row 6: Inspection & Cancel
-    act_row2 = [
-        {"text": "📋 List Tracks", "callback_data": f"dl:{sid}:list"},
+    # Series Episode Selection Rows
+    if is_series:
+        ep_row1 = []
+        for ep_code, ep_label in [("all", "All Eps"), ("S01E01", "Ep 1"), ("S01E02", "Ep 2"), ("S01E03", "Ep 3"), ("S01E04", "Ep 4")]:
+            check = "✅ " if curr_wanted == ep_code else ""
+            ep_row1.append({"text": f"{check}{ep_label}", "callback_data": f"dl:{sid}:w:{ep_code}"})
+
+        ep_row2 = []
+        for ep_code, ep_label in [("S01E05", "Ep 5"), ("S01E06", "Ep 6"), ("S01E01-S01E05", "E1-5"), ("S01", "S01 All"), ("S02", "S02 All")]:
+            check = "✅ " if curr_wanted == ep_code else ""
+            ep_row2.append({"text": f"{check}{ep_label}", "callback_data": f"dl:{sid}:w:{ep_code}"})
+
+        keyboard_rows.extend([ep_row1, ep_row2])
+
+    # Mode Toggle & List Tracks
+    series_btn_text = "📺 Series: ON" if is_series else "🎬 Movie Mode (Tap for Series)"
+    ctrl_row = [
+        {"text": series_btn_text, "callback_data": f"dl:{sid}:tseries"},
+        {"text": "📋 List Tracks/Eps", "callback_data": f"dl:{sid}:list"}
+    ]
+    keyboard_rows.append(ctrl_row)
+
+    # Primary Action Buttons
+    act_row = [
+        {"text": "🚀 Start Download", "callback_data": f"dl:{sid}:start"},
+        {"text": "⚡ Auto (Mux+Up)", "callback_data": f"dl:{sid}:auto"},
         {"text": "❌ Cancel", "callback_data": f"dl:{sid}:cancel"}
     ]
+    keyboard_rows.append(act_row)
 
-    return {
-        "inline_keyboard": [
-            q_row,
-            a_row1,
-            a_row2,
-            a_row3,
-            act_row1,
-            act_row2
-        ]
-    }
+    return {"inline_keyboard": keyboard_rows}
 
 
 def build_download_text(session):
     srv = session.get("service", "JHS")
     service_name = "JioHotstar" if srv == "JHS" else ("Amazon Prime" if srv == "AMZN" else srv)
+    content_type = "📺 Series" if session.get("is_series") else "🎬 Movie"
     langs = session.get("audio_langs", [])
     langs_display = ", ".join(langs) if langs else "None"
     extra_str = f"\n⚙️ <b>Extra:</b> <code>{session['extra']}</code>" if session.get("extra") else ""
+
+    eps_str = ""
+    if session.get("is_series"):
+        w = session.get("wanted", "all")
+        w_disp = "All Episodes" if w == "all" else w
+        eps_str = f"🎯 <b>Episodes:</b> <code>{w_disp}</code>\n"
+
     return (
-        f"🎬 <b>{service_name} Download Setup</b>\n"
+        f"🎬 <b>{service_name} Download Setup</b> ({content_type})\n"
         f"🔗 <b>URL:</b> <code>{session['url']}</code>{extra_str}\n\n"
         f"📺 <b>Quality:</b> <code>{session.get('quality', '1080p')}</code>\n"
         f"🎞 <b>Codec:</b> <code>{session.get('vcodec', 'H264')}</code>\n"
         f"🔊 <b>Audio:</b> <code>{langs_display}</code>\n"
+        f"{eps_str}"
         f"☁️ <b>Auto Drive Upload:</b> <code>{'ON' if AUTO_DRIVE_UPLOAD else 'OFF'}</code> (<code>{UPLOAD_ENGINE}</code>)\n\n"
-        f"<i>Tap buttons below to change Quality and Audio selection:</i>"
+        f"<i>Tap buttons below to change Quality, Audio & Episodes:</i>"
     )
 
 
@@ -715,12 +737,23 @@ def initiate_download_setup(chat_id, service, raw_input):
         send_message(chat_id, "❌ No valid URL provided.")
         return
 
+    is_series = bool(re.search(r'/(shows|tv|series)/', url, re.IGNORECASE))
+    wanted = "all"
+    if "-w" in extra:
+        m = re.search(r'-w\s+([^\s]+)', extra)
+        if m:
+            wanted = m.group(1)
+            extra = extra.replace(m.group(0), "").strip()
+            is_series = True
+
     sid = str(uuid.uuid4())[:8]
     pending_downloads[sid] = {
         "chat_id": chat_id,
         "service": service,
         "url": url,
         "extra": extra,
+        "is_series": is_series,
+        "wanted": wanted,
         "quality": DEFAULT_QUALITY,
         "vcodec": DEFAULT_VCODEC,
         "audio_langs": list(DEFAULT_AUDIO_LANGS),
@@ -750,16 +783,19 @@ def start_session_download(chat_id, session_id, auto_pipeline=False):
         send_message(chat_id, "⚠️ <b>A task is already running!</b> Wait or use <code>/cancel</code>.")
         return
 
-    msg_id = session.get("message_id")
-    if msg_id:
-        edit_message(chat_id, msg_id, f"🚀 <b>Starting Download...</b>\nQuality: <code>{session['quality']}</code> | Audio: <code>{','.join(session['audio_langs'])}</code>\nURL: <code>{session['url']}</code>")
-
     service = session["service"]
     url = session["url"]
     quality = session["quality"]
     vcodec = session["vcodec"]
     audio_langs = session["audio_langs"]
     extra = session.get("extra", "")
+    wanted = session.get("wanted", "all")
+    is_series = session.get("is_series", False)
+
+    msg_id = session.get("message_id")
+    if msg_id:
+        eps_info = f" | Eps: <code>{wanted}</code>" if is_series and wanted != "all" else ""
+        edit_message(chat_id, msg_id, f"🚀 <b>Starting Download...</b>\nQuality: <code>{quality}</code> | Audio: <code>{','.join(audio_langs)}</code>{eps_info}\nURL: <code>{url}</code>")
 
     cmd_parts = ["poetry run vt dl"]
     if quality and quality.lower() != "best":
@@ -768,12 +804,15 @@ def start_session_download(chat_id, session_id, auto_pipeline=False):
         cmd_parts.append(f"-v {vcodec}")
     if audio_langs:
         cmd_parts.append(f"-al {','.join(audio_langs)}")
+    if is_series and wanted and wanted.lower() != "all":
+        cmd_parts.append(f"-w {wanted}")
     if extra:
         cmd_parts.append(extra)
     cmd_parts.append(f"{service} \"{url}\"")
     full_cmd = " ".join(cmd_parts)
 
-    task_name = f"Download ({service}): {quality} [{','.join(audio_langs)}] - {url}"
+    eps_title = f" [{wanted}]" if is_series and wanted != "all" else ""
+    task_name = f"Download ({service}): {quality} [{','.join(audio_langs)}]{eps_title} - {url}"
 
     if auto_pipeline:
         def step_upload():
@@ -959,6 +998,18 @@ def handle_callback_query(cb):
 
             elif action == "c" and len(parts) >= 4:
                 session["vcodec"] = parts[3]
+                text = build_download_text(session)
+                kb = build_download_keyboard(sid, session)
+                edit_message(chat_id, message_id, text, reply_markup=kb)
+
+            elif action == "w" and len(parts) >= 4:
+                session["wanted"] = parts[3]
+                text = build_download_text(session)
+                kb = build_download_keyboard(sid, session)
+                edit_message(chat_id, message_id, text, reply_markup=kb)
+
+            elif action == "tseries":
+                session["is_series"] = not session.get("is_series", False)
                 text = build_download_text(session)
                 kb = build_download_keyboard(sid, session)
                 edit_message(chat_id, message_id, text, reply_markup=kb)
