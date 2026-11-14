@@ -22,14 +22,37 @@ from construct.lib import *
 
 # ── construct >= 2.9 compatibility shims ──────────────────────────────────────
 
-# 1. PaddedString was removed; replace with Bytes(n) (reads/writes n raw bytes).
+# 1. PaddedString compatibility adapter: converts between bytes and str.
 try:
     PaddedString  # noqa: F821 – present in construct < 2.9 star-import
 except NameError:
-    from construct import Bytes as _compat_Bytes
+    from construct import Adapter as _PaddedAdapter, Bytes as _compat_Bytes
 
-    def PaddedString(length, encoding):  # noqa: N802
-        return _compat_Bytes(length)
+    class _PaddedStringAdapter(_PaddedAdapter):
+        def __init__(self, length, encoding="ascii", pad=b"\x00"):
+            super().__init__(_compat_Bytes(length))
+            self.length = length
+            self.encoding = encoding
+            self.pad = pad
+
+        def _decode(self, obj, context, path=None, *args):
+            if isinstance(obj, bytes):
+                return obj.rstrip(b"\x00 ").decode(self.encoding, errors="replace")
+            return obj
+
+        def _encode(self, obj, context, path=None, *args):
+            if isinstance(obj, str):
+                b = obj.encode(self.encoding)
+            elif isinstance(obj, bytes):
+                b = obj
+            else:
+                b = str(obj).encode(self.encoding)
+            if len(b) < self.length:
+                b = b.ljust(self.length, self.pad)
+            return b[:self.length]
+
+    def PaddedString(length, encoding="ascii"):  # noqa: N802
+        return _PaddedStringAdapter(length, encoding)
 
 # 2. Universal Const shim: construct 2.8.8 expects Const(subcon, value) while
 #    construct >= 2.9 expects Const(value, subcon). Detect which one is installed
@@ -68,9 +91,9 @@ except NameError:
         def __init__(self, encoding):
             super().__init__(_GB)
             self.encoding = encoding
-        def _decode(self, obj, ctx, path):
+        def _decode(self, obj, ctx, path=None, *args):
             return obj.decode(self.encoding, errors="replace")
-        def _encode(self, obj, ctx, path):
+        def _encode(self, obj, ctx, path=None, *args):
             return obj.encode(self.encoding)
 
     def GreedyString(encoding):  # noqa: N802
@@ -118,6 +141,43 @@ try:
                     total = len(data) + self.lengthfield._sizeof(context, path)
                     self.lengthfield._build(total, stream, context, path)
                     _c_write_stream(stream, len(data), data)
+except Exception:
+    pass
+
+# 5. Switch key normalizer: converts bytes keys (b'pssh') to str ('pssh') so cases match on all construct versions.
+try:
+    _orig_Switch = Switch  # noqa: F821
+
+    class Switch(_orig_Switch):  # noqa: F811
+        def _parse(self, stream, context, path=None, *args):
+            key = self.keyfunc(context)
+            if isinstance(key, bytes):
+                try:
+                    key = key.decode("ascii")
+                except Exception:
+                    pass
+            subcon = self.cases.get(key, self.default)
+            if not subcon:
+                raise SwitchError(f"no case for {repr(key)}")
+            try:
+                return subcon._parse(stream, context, path)
+            except TypeError:
+                return subcon._parse(stream, context)
+
+        def _build(self, obj, stream, context, path=None, *args):
+            key = self.keyfunc(context)
+            if isinstance(key, bytes):
+                try:
+                    key = key.decode("ascii")
+                except Exception:
+                    pass
+            subcon = self.cases.get(key, self.default)
+            if not subcon:
+                raise SwitchError(f"no case for {repr(key)}")
+            try:
+                return subcon._build(obj, stream, context, path)
+            except TypeError:
+                return subcon._build(obj, stream, context)
 except Exception:
     pass
 
@@ -746,14 +806,14 @@ ContainerBoxLazy = LazyBound(lambda: ContainerBox)
 
 
 class BoxAdapter(Adapter):
-    def _decode(self, obj, context, path):
+    def _decode(self, obj, context, path=None, *args):
         if isinstance(obj.get("data"), Container):
             inner = obj.pop("data")
             for k, v in inner.items():
                 obj[k] = v
         return obj
 
-    def _encode(self, obj, context, path):
+    def _encode(self, obj, context, path=None, *args):
         type_val = obj.get("type")
         if isinstance(type_val, bytes):
             type_val = type_val.decode("ascii")
