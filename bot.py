@@ -670,12 +670,64 @@ def upload_to_gdrive(chat_id, target_name=None, on_finish_callback=None):
 
 
 # ---------------- Interactive Button & Selection Helpers ----------------
+SUPPORTED_SERVICES = {
+    "JHS": {"name": "JioHotstar", "icon": "🌟", "domains": ["hotstar.com", "jiocinema.com"]},
+    "AMZN": {"name": "Amazon Prime", "icon": "📦", "domains": ["primevideo.com", "amazon."]},
+    "NF": {"name": "Netflix", "icon": "🍿", "domains": ["netflix.com"]},
+    "DSNP": {"name": "Disney+", "icon": "🏰", "domains": ["disneyplus.com"]},
+    "SLIV": {"name": "SonyLIV", "icon": "📺", "domains": ["sonyliv.com"]},
+    "STAGE": {"name": "STAGE", "icon": "🎭", "domains": ["stage.in"]},
+    "ZEE5": {"name": "Zee5", "icon": "✨", "domains": ["zee5.com"]},
+    "ATV": {"name": "Apple TV+", "icon": "🍎", "domains": ["tv.apple.com"]},
+    "CR": {"name": "Crunchyroll", "icon": "🍣", "domains": ["crunchyroll.com"]},
+    "CHAU": {"name": "Chaupal", "icon": "🌾", "domains": ["chaupal.tv"]},
+    "SUN": {"name": "SunNXT", "icon": "☀️", "domains": ["sunnxt.net"]},
+    "AHA": {"name": "Aha", "icon": "🎬", "domains": ["aha.video"]},
+    "HCH": {"name": "Hoichoi", "icon": "🎥", "domains": ["hoichoi.tv"]}
+}
+
+def build_service_picker_keyboard(sid):
+    return {
+        "inline_keyboard": [
+            [
+                {"text": "🌟 JioHotstar (JHS)", "callback_data": f"dl:{sid}:srv:JHS"},
+                {"text": "📦 Prime Video (AMZN)", "callback_data": f"dl:{sid}:srv:AMZN"}
+            ],
+            [
+                {"text": "🍿 Netflix (NF)", "callback_data": f"dl:{sid}:srv:NF"},
+                {"text": "🏰 Disney+ (DSNP)", "callback_data": f"dl:{sid}:srv:DSNP"}
+            ],
+            [
+                {"text": "📺 SonyLIV (SLIV)", "callback_data": f"dl:{sid}:srv:SLIV"},
+                {"text": "🎭 STAGE (STAGE)", "callback_data": f"dl:{sid}:srv:STAGE"}
+            ],
+            [
+                {"text": "✨ Zee5 (ZEE5)", "callback_data": f"dl:{sid}:srv:ZEE5"},
+                {"text": "🍎 Apple TV+ (ATV)", "callback_data": f"dl:{sid}:srv:ATV"}
+            ],
+            [
+                {"text": "🍣 Crunchyroll (CR)", "callback_data": f"dl:{sid}:srv:CR"},
+                {"text": "🌾 Chaupal (CHAU)", "callback_data": f"dl:{sid}:srv:CHAU"}
+            ],
+            [
+                {"text": "☀️ SunNXT (SUN)", "callback_data": f"dl:{sid}:srv:SUN"},
+                {"text": "🎬 Aha (AHA)", "callback_data": f"dl:{sid}:srv:AHA"}
+            ],
+            [
+                {"text": "🔙 Back", "callback_data": f"dl:{sid}:back"}
+            ]
+        ]
+    }
+
 def build_download_keyboard(sid, session):
     curr_q = session.get("quality", "1080p")
     curr_langs = session.get("audio_langs", ["hin", "tam", "tel"])
     curr_codec = session.get("vcodec", "H264")
     curr_wanted = session.get("wanted", "all")
     is_series = session.get("is_series", False)
+    curr_srv = session.get("service", "JHS")
+    info = SUPPORTED_SERVICES.get(curr_srv, {"name": curr_srv, "icon": "🎬"})
+    srv_label = f"{info.get('icon', '🎬')} {curr_srv}"
 
     # Row 1: Qualities
     q_row = []
@@ -722,11 +774,12 @@ def build_download_keyboard(sid, session):
 
         keyboard_rows.extend([ep_row1, ep_row2])
 
-    # Mode Toggle & List Tracks
+    # Mode Toggle, Service Switch & List Tracks
     series_btn_text = "📺 Series: ON" if is_series else "🎬 Movie Mode (Tap for Series)"
     ctrl_row = [
         {"text": series_btn_text, "callback_data": f"dl:{sid}:tseries"},
-        {"text": "📋 List Tracks/Eps", "callback_data": f"dl:{sid}:list"}
+        {"text": f"🔄 {srv_label}", "callback_data": f"dl:{sid}:ch_srv"},
+        {"text": "📋 Tracks", "callback_data": f"dl:{sid}:list"}
     ]
     keyboard_rows.append(ctrl_row)
 
@@ -743,7 +796,9 @@ def build_download_keyboard(sid, session):
 
 def build_download_text(session):
     srv = session.get("service", "JHS")
-    service_name = "JioHotstar" if srv == "JHS" else ("Amazon Prime" if srv == "AMZN" else srv)
+    info = SUPPORTED_SERVICES.get(srv, {"name": srv, "icon": "🎬"})
+    service_name = info.get("name", srv)
+    service_icon = info.get("icon", "🎬")
     content_type = "📺 Series" if session.get("is_series") else "🎬 Movie"
     langs = session.get("audio_langs", [])
     langs_display = ", ".join(langs) if langs else "None"
@@ -756,7 +811,7 @@ def build_download_text(session):
         eps_str = f"🎯 <b>Episodes:</b> <code>{w_disp}</code>\n"
 
     return (
-        f"🎬 <b>{service_name} Download Setup</b> ({content_type})\n"
+        f"{service_icon} <b>{service_name} ({srv}) Download Setup</b> ({content_type})\n"
         f"🔗 <b>URL:</b> <code>{session['url']}</code>{extra_str}\n\n"
         f"📺 <b>Quality:</b> <code>{session.get('quality', '1080p')}</code>\n"
         f"🎞 <b>Codec:</b> <code>{session.get('vcodec', 'H264')}</code>\n"
@@ -1060,6 +1115,15 @@ def handle_callback_query(cb):
                 kb = build_download_keyboard(sid, session)
                 edit_message(chat_id, message_id, text, reply_markup=kb)
 
+            elif action == "ch_srv":
+                kb = build_service_picker_keyboard(sid)
+                edit_message(chat_id, message_id, "🏷 <b>Choose Streaming Service:</b>", reply_markup=kb)
+
+            elif action == "back":
+                text = build_download_text(session)
+                kb = build_download_keyboard(sid, session)
+                edit_message(chat_id, message_id, text, reply_markup=kb)
+
             elif action == "srv" and len(parts) >= 4:
                 session["service"] = parts[3]
                 text = build_download_text(session)
@@ -1145,12 +1209,21 @@ def handle_callback_query(cb):
 
 def handle_url_input(chat_id, text):
     url = text.strip()
-    if "hotstar.com" in url:
-        initiate_download_setup(chat_id, "JHS", url)
-    elif "primevideo.com" in url or "amazon." in url:
-        initiate_download_setup(chat_id, "AMZN", url)
+    detected_srv = None
+    lower_url = url.lower()
+    for srv_code, meta in SUPPORTED_SERVICES.items():
+        for d in meta["domains"]:
+            if d in lower_url:
+                detected_srv = srv_code
+                break
+        if detected_srv:
+            break
+
+    if detected_srv:
+        initiate_download_setup(chat_id, detected_srv, url)
     else:
         sid = str(uuid.uuid4())[:8]
+        is_series = any(k in lower_url for k in ["/show", "/shows", "/series", "/season", "/tv"])
         pending_downloads[sid] = {
             "chat_id": chat_id,
             "service": "JHS",
@@ -1159,22 +1232,15 @@ def handle_url_input(chat_id, text):
             "quality": DEFAULT_QUALITY,
             "vcodec": DEFAULT_VCODEC,
             "audio_langs": list(DEFAULT_AUDIO_LANGS),
+            "wanted": "all",
+            "is_series": is_series,
             "created_at": time.time()
         }
         text_msg = (
             f"🔗 <b>URL Detected:</b>\n<code>{url}</code>\n\n"
             f"<i>Choose service to download with:</i>"
         )
-        keyboard = {
-            "inline_keyboard": [
-                [
-                    {"text": "🌟 JioHotstar (JHS)", "callback_data": f"dl:{sid}:srv:JHS"},
-                    {"text": "📦 Amazon Prime (AMZN)", "callback_data": f"dl:{sid}:srv:AMZN"}
-                ],
-                [{"text": "❌ Cancel", "callback_data": f"dl:{sid}:cancel"}]
-            ]
-        }
-        res = send_message(chat_id, text_msg, reply_markup=keyboard)
+        res = send_message(chat_id, text_msg, reply_markup=build_service_picker_keyboard(sid))
         if res and res.get("ok"):
             pending_downloads[sid]["message_id"] = res["result"]["message_id"]
 
@@ -1191,17 +1257,19 @@ def handle_command(chat_id, text):
         langs_str = ", ".join(DEFAULT_AUDIO_LANGS) if DEFAULT_AUDIO_LANGS else "None"
         help_text = (
             "🤖 <b>Remote Media, Cloud & VPN Controller</b>\n\n"
-            "<b>Operations:</b>\n"
-            "• <code>/jhs &lt;url&gt;</code> - Fast JioHotstar Download (Interactive Buttons)\n"
-            "• <code>/prime &lt;url&gt;</code> - Fast Amazon Prime Download (Interactive Buttons)\n"
-            "• <code>/dl &lt;args&gt;</code> - Custom download via poetry\n"
-            "• <i>Direct URL:</i> Paste any Hotstar or Prime URL to open selection buttons!\n\n"
+            "<b>Supported Services:</b>\n"
+            "• JioHotstar (<code>/jhs</code>) | Prime Video (<code>/prime</code>) | Netflix (<code>/nf</code>)\n"
+            "• Disney+ (<code>/dsnp</code>) | SonyLIV (<code>/sony</code>) | STAGE (<code>/stage</code>)\n"
+            "• Zee5 (<code>/zee5</code>) | Apple TV+ (<code>/atv</code>) | Crunchyroll (<code>/cr</code>)\n"
+            "• Chaupal (<code>/chau</code>) | SunNXT (<code>/sun</code>) | Aha (<code>/aha</code>)\n"
+            "💡 <i>Tip: Paste any URL directly into chat to open interactive buttons!</i>\n\n"
             "<b>🎛 Quality & Audio Controls:</b>\n"
             f"• <code>/quality</code> - Set default video quality (Current: <b>{DEFAULT_QUALITY}</b>)\n"
             f"• <code>/audio</code> - Toggle default audio languages (Current: <b>{langs_str}</b>)\n"
             f"• <code>/settings</code> - Interactive Control Panel & Defaults\n"
             f"  <i>Auto-Upload:</i> {'✅ <b>ON</b>' if AUTO_DRIVE_UPLOAD else '❌ <b>OFF</b>'} (Engine: <code>{UPLOAD_ENGINE}</code>)\n\n"
             "<b>📦 Processing & Storage:</b>\n"
+            "• <code>/dl &lt;args&gt;</code> - Custom download via poetry\n"
             "• <code>/mux</code> - Run multi-audio batch muxer (.MULTi.mkv)\n"
             "• <code>/upload [name]</code> - Upload folder/file to Google Drive\n"
             "• <code>/auto &lt;args&gt;</code> - Pipeline: Download ➔ Mux ➔ Drive Upload\n"
@@ -1234,10 +1302,49 @@ def handle_command(chat_id, text):
         send_settings_menu(chat_id)
 
     # ---------------- Quick Service Downloads ----------------
-    elif cmd == "/jhs":
+    elif cmd in (
+        "/jhs", "/hotstar",
+        "/prime", "/amzn",
+        "/nf", "/netflix",
+        "/dsnp", "/disney",
+        "/sony", "/sliv",
+        "/stage",
+        "/zee5", "/z5",
+        "/atv", "/appletv",
+        "/cr", "/crunchyroll",
+        "/chau", "/chaupal",
+        "/sun", "/sunnxt",
+        "/aha",
+        "/hch", "/hoichoi"
+    ):
+        cmd_to_srv = {
+            "/jhs": "JHS", "/hotstar": "JHS",
+            "/prime": "AMZN", "/amzn": "AMZN",
+            "/nf": "NF", "/netflix": "NF",
+            "/dsnp": "DSNP", "/disney": "DSNP",
+            "/sony": "SLIV", "/sliv": "SLIV",
+            "/stage": "STAGE",
+            "/zee5": "ZEE5", "/z5": "ZEE5",
+            "/atv": "ATV", "/appletv": "ATV",
+            "/cr": "CR", "/crunchyroll": "CR",
+            "/chau": "CHAU", "/chaupal": "CHAU",
+            "/sun": "SUN", "/sunnxt": "SUN",
+            "/aha": "AHA",
+            "/hch": "HCH", "/hoichoi": "HCH"
+        }
+        target_srv = cmd_to_srv[cmd]
+        info = SUPPORTED_SERVICES.get(target_srv, {"name": target_srv, "icon": "🎬"})
+        srv_name = info.get("name", target_srv)
+
         if not args:
-            send_message(chat_id, "❌ <i>Please provide JioHotstar URL.</i>\nExample: <code>/jhs https://www.hotstar.com/in/movies/...</code>\n💡 <i>Or paste the URL directly into chat!</i>")
+            send_message(
+                chat_id,
+                f"❌ <i>Please provide {srv_name} URL.</i>\n"
+                f"Example: <code>{cmd} &lt;url&gt;</code>\n"
+                f"💡 <i>Or simply paste the URL directly into chat!</i>"
+            )
             return
+
         if active_process and active_process.poll() is None:
             send_message(chat_id, "⚠️ <b>A task is already running!</b> Wait or use <code>/cancel</code>.")
             return
@@ -1246,47 +1353,20 @@ def handle_command(chat_id, text):
         if "-now" in args or "-y" in args:
             clean_args = args.replace("-now", "").replace("-y", "").strip()
             if "http" in clean_args and not clean_args.startswith("http"):
-                full_cmd = f"poetry run vt dl {clean_args} JHS"
+                full_cmd = f"poetry run vt dl {clean_args} {target_srv}"
             else:
                 q_flag = f"-q {DEFAULT_QUALITY}" if DEFAULT_QUALITY and DEFAULT_QUALITY.lower() != "best" else ""
-                full_cmd = f"poetry run vt dl {q_flag} -v {DEFAULT_VCODEC} -al {','.join(DEFAULT_AUDIO_LANGS)} JHS {clean_args}".replace("  ", " ")
+                full_cmd = f"poetry run vt dl {q_flag} -v {DEFAULT_VCODEC} -al {','.join(DEFAULT_AUDIO_LANGS)} {target_srv} {clean_args}".replace("  ", " ")
             pre_snap = snapshot_downloads()
-            def on_jhs_success():
+            def on_srv_success():
                 if AUTO_DRIVE_UPLOAD:
                     target = find_new_or_updated_target(pre_snap)
                     if target:
                         send_message(chat_id, f"☁️ <b>Auto-Upload Triggered:</b>\nTarget: <code>{target.name}</code> ➔ Google Drive ({UPLOAD_ENGINE})")
                         upload_to_gdrive(chat_id, target_name=target.name)
-            run_command_async(chat_id, full_cmd, task_name=f"Download (JHS): {clean_args}", on_success_callback=on_jhs_success)
+            run_command_async(chat_id, full_cmd, task_name=f"Download ({target_srv}): {clean_args}", on_success_callback=on_srv_success)
         else:
-            initiate_download_setup(chat_id, "JHS", args)
-
-    elif cmd == "/prime":
-        if not args:
-            send_message(chat_id, "❌ <i>Please provide Amazon Prime URL.</i>\nExample: <code>/prime https://www.primevideo.com/detail/...</code>\n💡 <i>Or paste the URL directly into chat!</i>")
-            return
-        if active_process and active_process.poll() is None:
-            send_message(chat_id, "⚠️ <b>A task is already running!</b> Wait or use <code>/cancel</code>.")
-            return
-
-        # Immediate bypass flag (-now or -y)
-        if "-now" in args or "-y" in args:
-            clean_args = args.replace("-now", "").replace("-y", "").strip()
-            if "http" in clean_args and not clean_args.startswith("http"):
-                full_cmd = f"poetry run vt dl {clean_args} AMZN"
-            else:
-                q_flag = f"-q {DEFAULT_QUALITY}" if DEFAULT_QUALITY and DEFAULT_QUALITY.lower() != "best" else ""
-                full_cmd = f"poetry run vt dl {q_flag} -v {DEFAULT_VCODEC} -al {','.join(DEFAULT_AUDIO_LANGS)} AMZN {clean_args}".replace("  ", " ")
-            pre_snap = snapshot_downloads()
-            def on_prime_success():
-                if AUTO_DRIVE_UPLOAD:
-                    target = find_new_or_updated_target(pre_snap)
-                    if target:
-                        send_message(chat_id, f"☁️ <b>Auto-Upload Triggered:</b>\nTarget: <code>{target.name}</code> ➔ Google Drive ({UPLOAD_ENGINE})")
-                        upload_to_gdrive(chat_id, target_name=target.name)
-            run_command_async(chat_id, full_cmd, task_name=f"Download (Prime): {clean_args}", on_success_callback=on_prime_success)
-        else:
-            initiate_download_setup(chat_id, "AMZN", args)
+            initiate_download_setup(chat_id, target_srv, args)
 
     elif cmd == "/dl":
         if not args:
