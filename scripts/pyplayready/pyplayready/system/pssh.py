@@ -2,8 +2,32 @@ import base64
 from typing import Union, List
 from uuid import UUID
 
-from construct import Struct, Int32ul, Int16ul, this, Bytes, Switch, Int8ub, Int24ub, Int32ub, Const, Container, \
+from construct import Struct, Int32ul, Int16ul, this, Bytes, Switch, Int8ub, Int24ub, Int32ub, Const as _orig_Const, Container, \
     ConstructError, Rebuild, Default, If, PrefixedArray, Prefixed, GreedyBytes
+
+# Universal Const shim: construct 2.8.8 expects Const(subcon, value) while
+# construct >= 2.9 expects Const(value, subcon). Support both.
+try:
+    from construct import Construct as _Construct, Byte as _TestByte
+    try:
+        _orig_Const(0, _TestByte)
+        _const_expects_val_first = True
+    except TypeError:
+        _const_expects_val_first = False
+
+    def Const(a, b=None, **kw):  # noqa: N802
+        if b is None:
+            return _orig_Const(a, **kw)
+        if isinstance(a, _Construct):
+            subcon, val = a, b
+        else:
+            val, subcon = a, b
+        if _const_expects_val_first:
+            return _orig_Const(val, subcon, **kw)
+        else:
+            return _orig_Const(subcon, val, **kw)
+except Exception:
+    Const = _orig_Const
 
 from pyplayready.misc.exceptions import InvalidPssh
 from pyplayready.system.wrmheader import WRMHeader

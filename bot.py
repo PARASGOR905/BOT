@@ -751,6 +751,29 @@ LANG_ROW_ORDER = [
     ["jpn", "kor", "zho", "fra", "spa", "por", "deu", "ara"],
 ]
 
+# Service-aware default audio languages
+SERVICE_DEFAULT_LANGS = {
+    "DSNP": ["eng"],
+    "CR": ["jpn", "eng"],
+    "ATV": ["eng"],
+    "NF": ["eng", "hin"],
+    "AMZN": ["hin", "eng"],
+    "JHS": ["hin", "tam", "tel"],
+    "ZEE5": ["hin"],
+    "STAGE": ["hin"],
+    "SLIV": ["hin"],
+    "CHAU": ["pun", "hin"],
+    "SUN": ["tam", "tel"],
+    "AHA": ["tel", "tam"],
+    "HCH": ["ben"],
+}
+
+def get_default_langs_for_service(service):
+    srv = (service or "").upper()
+    if srv in SERVICE_DEFAULT_LANGS:
+        return list(SERVICE_DEFAULT_LANGS[srv])
+    return list(DEFAULT_AUDIO_LANGS)
+
 def _chunk_list(lst, n):
     """Split list into sub-lists of max length n."""
     return [lst[i:i+n] for i in range(0, len(lst), n)]
@@ -859,14 +882,26 @@ def build_download_keyboard(sid, session):
                 row.append({"text": f"{check}{label}", "callback_data": f"dl:{sid}:a:{code}"})
             keyboard_rows.append(row)
     else:
-        # Fallback: show all standard language buttons
-        for row_codes in LANG_ROW_ORDER[:2]:
+        # Fallback: show standard language buttons tailored to the service
+        if curr_srv in ("DSNP", "ATV", "CR"):
+            fallback_rows = [["eng", "spa", "fra", "deu"], ["jpn", "kor", "hin", "tam"]]
+        elif curr_srv == "CHAU":
+            fallback_rows = [["pun", "hin", "eng"]]
+        elif curr_srv in ("SUN", "AHA"):
+            fallback_rows = [["tam", "tel", "mal", "kan"], ["hin", "eng"]]
+        elif curr_srv == "HCH":
+            fallback_rows = [["ben", "hin", "eng"]]
+        else:
+            fallback_rows = LANG_ROW_ORDER[:2]
+
+        for row_codes in fallback_rows:
             row = []
             for code in row_codes:
-                label = LANG_META.get(code, code)
+                label = LANG_META.get(code, code.upper())
                 check = "✅ " if code in curr_langs else ""
                 row.append({"text": f"{check}{label}", "callback_data": f"dl:{sid}:a:{code}"})
-            keyboard_rows.append(row)
+            if row:
+                keyboard_rows.append(row)
 
     # All / Original + Codec row
     a_misc = []
@@ -1045,7 +1080,7 @@ def initiate_download_setup(chat_id, service, raw_input):
         "wanted": wanted,
         "quality": DEFAULT_QUALITY,
         "vcodec": DEFAULT_VCODEC,
-        "audio_langs": list(DEFAULT_AUDIO_LANGS),
+        "audio_langs": get_default_langs_for_service(service),
         "track_meta": None,
         "meta_fetching": True,          # will auto-fetch in background
         "created_at": time.time()
@@ -1316,7 +1351,9 @@ def handle_callback_query(cb):
                 edit_message(chat_id, message_id, text, reply_markup=kb)
 
             elif action == "srv" and len(parts) >= 4:
-                session["service"] = parts[3]
+                new_srv = parts[3]
+                session["service"] = new_srv
+                session["audio_langs"] = get_default_langs_for_service(new_srv)
                 text = build_download_text(session)
                 kb = build_download_keyboard(sid, session)
                 edit_message(chat_id, message_id, text, reply_markup=kb)
@@ -1438,7 +1475,7 @@ def handle_url_input(chat_id, text):
             "extra": "",
             "quality": DEFAULT_QUALITY,
             "vcodec": DEFAULT_VCODEC,
-            "audio_langs": list(DEFAULT_AUDIO_LANGS),
+            "audio_langs": get_default_langs_for_service("JHS"),
             "wanted": "all",
             "is_series": is_series,
             "created_at": time.time()
