@@ -231,10 +231,17 @@ def get_cdm(service, profile=None, cdm_name=None):
                         logging.warning(f"Reprovision Failed - {e}")
                 return Device_PR.load(prd_path)
             else:
-                # If it doesn't exist, create a new one
+                # If it doesn't exist, try case-insensitive folder match or create from folder
+                if not device_dir.is_dir():
+                    for d in Path(directories.devices).rglob("*"):
+                        if d.is_dir() and (device_dir.name.lower() in d.name.lower() or d.name.lower() in device_dir.name.lower()):
+                            if (d / 'zgpriv.dat').is_file() and (d / 'bgroupcert.dat').is_file():
+                                device_dir = d
+                                break
                 if device_dir.is_dir():
                     device_path = create_device(device_dir)
                     return Device_PR.load(device_path)
+                raise FileNotFoundError(f"Device '{cdm_name}' not found in {directories.devices}")
         else:
             # Otherwise, treat as a Widevine device
             wvd_path = os.path.join(directories.devices, f"{cdm_name}.wvd")
@@ -447,8 +454,10 @@ def dl(ctx, profile, cdm, *_, **__):
 
     try:
         device = get_cdm(service, profile, cdm)
-    except ValueError as e:
+    except (ValueError, FileNotFoundError) as e:
         raise log.exit(f" - {e}")
+    if not device:
+        raise log.exit(f" - Device '{cdm or service}' could not be loaded from '{directories.devices}'")
     
     # Add this check after device is loaded
     if hasattr(device, 'type') and device.type == LocalDevice.Types.PLAYREADY:
