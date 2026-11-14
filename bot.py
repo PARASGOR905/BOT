@@ -21,6 +21,7 @@ import re
 import threading
 import subprocess
 import uuid
+import html
 from pathlib import Path
 import requests
 from requests.adapters import HTTPAdapter
@@ -184,7 +185,12 @@ def send_message(chat_id, text, parse_mode="HTML", reply_markup=None):
         if reply_markup is not None:
             payload["reply_markup"] = reply_markup
         res = session.post(url, json=payload, timeout=12)
-        return res.json()
+        data = res.json()
+        if not data.get("ok") and parse_mode:
+            payload.pop("parse_mode", None)
+            res2 = session.post(url, json=payload, timeout=12)
+            return res2.json()
+        return data
     except Exception as e:
         print(f"[TG Error] send_message: {e}")
         return None
@@ -203,8 +209,14 @@ def edit_message(chat_id, message_id, text, parse_mode="HTML", reply_markup=None
         if reply_markup is not None:
             payload["reply_markup"] = reply_markup
         res = session.post(url, json=payload, timeout=8)
-        return res.json()
-    except Exception:
+        data = res.json()
+        if not data.get("ok") and parse_mode:
+            payload.pop("parse_mode", None)
+            res2 = session.post(url, json=payload, timeout=8)
+            return res2.json()
+        return data
+    except Exception as e:
+        print(f"[TG Error] edit_message: {e}")
         return None
 
 
@@ -533,15 +545,20 @@ def run_command_async(chat_id, full_cmd, task_name=None, on_success_callback=Non
             is_robocopy = "robocopy" in full_cmd.lower()
             is_success = (ret_code < 8) if is_robocopy else (ret_code == 0)
 
+            clean_output = html.escape(last_output) if last_output else "No output produced"
+            print(f"[{'SUCCESS' if is_success else 'FAIL'}] {title} (Code {ret_code})")
+            if last_output:
+                print(last_output)
+
+            clear_kb = {"inline_keyboard": []}
             if is_success:
                 finish_text = (
                     f"✅ <b>Task Completed!</b> ({mins}m {secs}s)\n"
-                    f"<code>{title}</code>\n\n"
-                    f"<pre>{last_output}</pre>"
+                    f"<code>{html.escape(title)}</code>\n\n"
+                    f"<pre>{clean_output}</pre>"
                 )
-                if status_msg_id:
-                    edit_message(chat_id, status_msg_id, finish_text, reply_markup=None)
-                else:
+                res = edit_message(chat_id, status_msg_id, finish_text, reply_markup=clear_kb) if status_msg_id else None
+                if not res or not res.get("ok"):
                     send_message(chat_id, finish_text)
 
                 if on_success_callback:
@@ -549,12 +566,11 @@ def run_command_async(chat_id, full_cmd, task_name=None, on_success_callback=Non
             else:
                 fail_text = (
                     f"❌ <b>Task Failed! (Code {ret_code})</b> ({mins}m {secs}s)\n"
-                    f"<code>{title}</code>\n\n"
-                    f"<pre>{last_output}</pre>"
+                    f"<code>{html.escape(title)}</code>\n\n"
+                    f"<pre>{clean_output}</pre>"
                 )
-                if status_msg_id:
-                    edit_message(chat_id, status_msg_id, fail_text, reply_markup=None)
-                else:
+                res = edit_message(chat_id, status_msg_id, fail_text, reply_markup=clear_kb) if status_msg_id else None
+                if not res or not res.get("ok"):
                     send_message(chat_id, fail_text)
 
         except Exception as e:
