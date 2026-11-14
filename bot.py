@@ -27,7 +27,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 # ==================== CONFIGURATION ====================
-WORKING_DIR = Path(r"D:\temp").resolve()
+WORKING_DIR = Path(__file__).parent.resolve() if "__file__" in globals() else Path.cwd().resolve()
 
 def load_env_file():
     env_path = WORKING_DIR / ".env"
@@ -215,7 +215,14 @@ def render_progress_bar(pct, length=12):
 
 
 def detect_gdrive_path():
-    """Detect mounted Google Drive desktop drive letter."""
+    """Detect mounted Google Drive desktop drive letter or Colab mount."""
+    colab_path = Path("/content/drive/MyDrive/TV Shows")
+    if colab_path.exists() or colab_path.parent.exists():
+        return colab_path
+    colab_root = Path("/content/drive/MyDrive")
+    if colab_root.exists():
+        return colab_root
+
     curr = Path(GDRIVE_DEFAULT_DEST)
     if curr.exists() or curr.parent.exists():
         return curr
@@ -397,6 +404,27 @@ def build_live_status_message(title, elapsed_sec, state):
         lines.append(f"📄 <code>{file_info[:70]}</code>")
 
     return "\n".join(lines)
+
+
+def terminate_active_process():
+    global active_process, active_cmd
+    with process_lock:
+        if active_process and active_process.poll() is None:
+            cmd_name = active_cmd
+            try:
+                if sys.platform == "win32":
+                    subprocess.run(f"taskkill /PID {active_process.pid} /T /F", shell=True)
+                else:
+                    active_process.terminate()
+                    time.sleep(0.5)
+                    if active_process.poll() is None:
+                        active_process.kill()
+            except Exception as e:
+                print(f"[!] Error terminating process: {e}")
+            active_process = None
+            active_cmd = None
+            return cmd_name
+        return None
 
 
 # ---------------- Background Execution (Decoupled & Non-blocking) ----------------
@@ -944,17 +972,11 @@ def handle_callback_query(cb):
 
     # 1. Task cancellation
     if data == "task:cancel":
-        with process_lock:
-            if active_process and active_process.poll() is None:
-                try:
-                    subprocess.run(f"taskkill /PID {active_process.pid} /T /F", shell=True)
-                    send_message(chat_id, f"🛑 <b>Task Terminated via button:</b>\n<code>{active_cmd}</code>")
-                except Exception as e:
-                    send_message(chat_id, f"⚠️ Failed to kill process: {e}")
-                active_process = None
-                active_cmd = None
-            else:
-                send_message(chat_id, "ℹ️ No task running to cancel.")
+        terminated = terminate_active_process()
+        if terminated:
+            send_message(chat_id, f"🛑 <b>Task Terminated via button:</b>\n<code>{terminated}</code>")
+        else:
+            send_message(chat_id, "ℹ️ No task running to cancel.")
         return
 
     # 2. Download session interactions (dl:<sid>:...)
@@ -1413,17 +1435,11 @@ def handle_command(chat_id, text):
                 send_message(chat_id, "💤 <b>Idle:</b> No active tasks running.")
 
     elif cmd in ("/cancel", "/kill", "/stop"):
-        with process_lock:
-            if active_process and active_process.poll() is None:
-                try:
-                    subprocess.run(f"taskkill /PID {active_process.pid} /T /F", shell=True)
-                    send_message(chat_id, f"🛑 <b>Task Terminated:</b>\n<code>{active_cmd}</code>")
-                except Exception as e:
-                    send_message(chat_id, f"⚠️ Failed to kill process: {e}")
-                active_process = None
-                active_cmd = None
-            else:
-                send_message(chat_id, "ℹ️ No task running to cancel.")
+        terminated = terminate_active_process()
+        if terminated:
+            send_message(chat_id, f"🛑 <b>Task Terminated:</b>\n<code>{terminated}</code>")
+        else:
+            send_message(chat_id, "ℹ️ No task running to cancel.")
 
     elif cmd == "/mux":
         if active_process and active_process.poll() is None:
